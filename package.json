@@ -1,0 +1,25 @@
+{
+  "name": "ton-tvm-bus",
+  "version": "0.0.1",
+  "description": "Testing framework for TON that leverages ton-contract-executor",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "NODE_OPTIONS=\"--loader ts-node/esm\" npx mocha  'test/**/*.ts'"
+  },
+  "keywords": [
+    "ton",
+    "ton-contract-executor"
+  ],
+  "author": "Doronaviguy",
+  "license": "ISC",
+  "dependencies": {
+    "@types/chai": "^4.3.3",
+    "chai": "^4.3.6",
+    "ton": "^12.0.1",
+    "ton-contract-executor": "^0.5.2",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^9.1.1"
+  }
+}
