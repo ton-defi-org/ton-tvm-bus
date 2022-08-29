@@ -73,4 +73,3 @@ async function createBaseContracts(tvmBus: TvmBus) {
         deployWallet,
     };
 }
-ç;
