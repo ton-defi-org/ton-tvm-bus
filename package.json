@@ -1,10 +1,20 @@
 {
   "name": "ton-tvm-bus",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Testing framework for TON that leverages ton-contract-executor",
-  "main": "src/index.js",
+  "main": "lib/src/index.js",
+  "types": "lib/src/index.d.ts",
+  "files": ["lib/**/*"],
   "scripts": {
-    "test": "NODE_OPTIONS=\"--loader ts-node/esm\" npx mocha  'test/**/*.ts'"
+    "build": "rm -rf lib && tsc",
+    "test": "NODE_OPTIONS=\"--loader ts-node/esm\" npx mocha  'test/**/*.ts'",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "prepare" : "npm run build",
+    "lint": "tslint -p tsconfig.json",
+    "prepublishOnly" : "npm test ",
+    
+    "version" : "npm run format && git add -A src",
+    "postversion" : "git push && git push --tags"
   },
   "keywords": [
     "ton",
@@ -20,6 +30,10 @@
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
-    "@types/mocha": "^9.1.1"
+    "@types/bn.js": "^5.1.0",
+    "@types/mocha": "^9.1.1",
+    "prettier": "^2.7.1",
+    "tslint": "^6.1.3",
+    "tslint-config-prettier": "^1.18.0"
   }
 }
