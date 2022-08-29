@@ -1,6 +1,10 @@
 {
   "name": "ton-tvm-bus",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": " https://github.com/ton-defi-org/ton-tvm-bus.git"
+  },
   "description": "Testing framework for TON that leverages ton-contract-executor",
   "main": "lib/src/index.js",
   "types": "lib/src/index.d.ts",
@@ -11,8 +15,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "prepare" : "npm run build",
     "lint": "tslint -p tsconfig.json",
-    "prepublishOnly" : "npm test ",
-    
+    "prepublishOnly" : "npm test ",   
     "version" : "npm run format && git add -A src",
     "postversion" : "git push && git push --tags"
   },
@@ -20,7 +23,7 @@
     "ton",
     "ton-contract-executor"
   ],
-  "author": "Doronaviguy",
+  "author": "doronaviguy",
   "license": "ISC",
   "dependencies": {
     "@types/chai": "^4.3.3",
