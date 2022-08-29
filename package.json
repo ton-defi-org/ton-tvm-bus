@@ -1,6 +1,6 @@
 {
   "name": "ton-tvm-bus",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": " https://github.com/ton-defi-org/ton-tvm-bus.git"
@@ -11,7 +11,7 @@
   "files": ["lib/**/*"],
   "scripts": {
     "build": "rm -rf lib && tsc",
-    "test": "NODE_OPTIONS=\"--loader ts-node/esm\" npx mocha  'test/**/*.ts'",
+    "test": "NODE_OPTIONS=\"--no-warnings --loader ts-node/esm\" npx mocha  'test/**/*.ts'",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "prepare" : "npm run build",
     "lint": "tslint -p tsconfig.json",
