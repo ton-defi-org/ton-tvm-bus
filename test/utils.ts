@@ -1,5 +1,6 @@
+import BN from "bn.js";
 import { execSync } from "child_process";
-import { Address, Cell } from "ton";
+import { Address, beginCell, Cell, CellMessage, CommonMessageInfo, InternalMessage } from "ton";
 
 export function compileFuncToB64(funcFiles: string[]): string {
     const funcPath = process.env.FUNC_PATH || "func";
@@ -27,4 +28,22 @@ export function bytesToAddress(bufferB64: string) {
     const buff = Buffer.from(bufferB64, "base64");
     let c2 = Cell.fromBoc(buff);
     return c2[0].beginParse().readAddress() as Address;
+}
+
+export function messageGenerator(opts: { to: Address; from: Address; body: Cell; value: BN; bounce?: boolean }) {
+    return new InternalMessage({
+        from: opts.from,
+        to: opts.to,
+        value: opts.value,
+        bounce: opts.bounce || false,
+        body: new CommonMessageInfo({
+            body: new CellMessage(opts.body),
+        }),
+    });
+}
+
+type encoding = "hex" | "base64";
+
+export function cellFromString(cellStr: string, stringEncoding: encoding = "hex") {
+    return beginCell().storeBuffer(Buffer.from(cellStr, stringEncoding)).endCell();
 }

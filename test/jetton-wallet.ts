@@ -56,6 +56,7 @@ export class JettonWallet implements iTvmBusContract {
         messageBody.bits.writeAddress(responseDestination);
         messageBody.bits.writeBit(false); // null custom_payload
         messageBody.bits.writeCoins(forwardTonAmount);
+        messageBody.bits.writeUint(1, 1); // to satisfy throw_unless(708, slice_bits(in_msg_body) >= 1);
 
         return messageBody;
     }
