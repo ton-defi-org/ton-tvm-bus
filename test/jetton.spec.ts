@@ -29,7 +29,7 @@ describe("Ton Swap Bus Test Suite", () => {
         expect((await usdcWallet.getData()).balance.toString()).eq(data?.totalSupply.toString());
     });
 
-    it.only("transfer jetton", async () => {
+    it("transfer jetton", async () => {
         const tvmBus = new TvmBus();
         const { usdcMinter, usdcWallet, deployWallet } = await createBaseContracts(tvmBus);
         const data = await usdcMinter.getData();
