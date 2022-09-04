@@ -15,7 +15,7 @@ const client = new TonClient({
 });
 
 describe("Tvm Bus on chain contracts Test Suite", () => {
-    it.only("Swap ", async () => {
+    it("Swap ", async () => {
         const tvmBus = new TvmBus({
             client,
         });
