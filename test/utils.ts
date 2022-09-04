@@ -1,6 +1,6 @@
 import BN from "bn.js";
 import { execSync } from "child_process";
-import { Address, beginCell, Cell, CellMessage, CommonMessageInfo, InternalMessage } from "ton";
+import { Address, beginCell, Cell, CellMessage, CommonMessageInfo, InternalMessage, WalletContract } from "ton";
 
 export function compileFuncToB64(funcFiles: string[]): string {
     const funcPath = process.env.FUNC_PATH || "func";
