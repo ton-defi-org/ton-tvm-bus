@@ -108,7 +108,7 @@ export class TvmBus {
                     //console.log(`task -> to:${itMsg.to.toFriendly()} body: ${itMsg.body.body}`);
 
                     // In case message has StateInit, and contract address is not registered
-                    if (it.message.init && !this.getContractByAddress(itMsg.to)) {
+                    if (it.message.init && !(await this.getContractByAddress(itMsg.to))) {
                         const deployedContract = (await this.deployContractFromMessage(
                             it.message?.init?.code as Cell,
                             it.message?.init?.data as Cell,
