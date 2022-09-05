@@ -18,7 +18,7 @@ function enrich(data: any) {
         if (it.sender) {
             // throw "no sender";
         } else {
-            console.log(`couldn't found sender ${it.from.toFriendly()}`);
+            console.log(`couldn't find sender ${it.from.toFriendly()}`);
 
             // throw "sender not found"
         }
@@ -100,7 +100,6 @@ function treeToChains(data: StringArray) {
         }
     }
     return chains;
-    //  console.log(buff
 }
 
 function findMessageSender(message: any) {

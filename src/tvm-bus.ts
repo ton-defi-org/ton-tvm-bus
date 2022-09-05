@@ -18,7 +18,7 @@ export class TvmBus {
 
     async getContractByAddress(address: Address) {
         let contract = this.pool.get(address.toFriendly()) as iTvmBusContract;
-        console.log(`${address.toFriendly()}`, contract);
+        // console.log(`${address.toFriendly()}`, contract);
 
         //  contract doesn't exists in pool and forkNetwork flag is on, fetch
         //  contract dynamically

@@ -1,6 +1,6 @@
 {
   "name": "ton-tvm-bus",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": {
     "type": "git",
     "url": " https://github.com/ton-defi-org/ton-tvm-bus.git"
@@ -15,7 +15,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "prepare" : "npm run build",
     "lint": "tslint -p tsconfig.json",
-    "prepublishOnly" : "npm test ",   
+    
     "version" : "npm run format && git add -A src",
     "postversion" : "git push && git push --tags"
   },

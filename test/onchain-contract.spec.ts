@@ -15,7 +15,7 @@ const client = new TonClient({
 });
 
 describe("Tvm Bus on chain contracts Test Suite", () => {
-    it("Swap ", async () => {
+    it("Fork Contact from main net, and run a swap transaction", async () => {
         const tvmBus = new TvmBus({
             client,
         });
@@ -35,12 +35,12 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
             value: toNano("0.19"),
         });
         let messageList = await tvmBus.broadcast(msg);
-        printChain(messageList);
+        printChain(messageList, "Fork Contact from main net, and run a swap transaction");
 
         // const { usdcMinter, usdcWallet } = await createBaseContracts(tvmBus);
         // const data = await usdcMinter.getData();
         // expect((await usdcWallet.getData()).balance.toString()).eq(data?.totalSupply.toString());
-    }).timeout(5000);
+    }).timeout(10000);
 });
 
 async function createBaseContracts(tvmBus: TvmBus) {

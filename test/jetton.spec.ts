@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { expect } from "chai";
 import { toNano } from "ton";
-import { TvmBus } from "../src";
+import { printChain, TvmBus } from "../src";
 import { JettonMinter } from "./jetton-minter";
 import { JettonWallet } from "./jetton-wallet";
 import { messageGenerator } from "./utils";
@@ -22,11 +22,12 @@ describe("Ton Swap Bus Test Suite", () => {
         const { usdcMinter, usdcWallet, deployWallet } = await createBaseContracts(tvmBus);
 
         let mintMessage = await usdcMinter.mintMessage(deployWallet.address, deployWallet.address, toNano(7505));
-        let res = await tvmBus.broadcast(mintMessage);
+        let messageLog = await tvmBus.broadcast(mintMessage);
 
         const data = await usdcMinter.getData();
 
         expect((await usdcWallet.getData()).balance.toString()).eq(data?.totalSupply.toString());
+        printChain(messageLog, "mint USDC twice");
     });
 
     it("transfer jetton", async () => {
@@ -56,6 +57,8 @@ describe("Ton Swap Bus Test Suite", () => {
 
         const joesJettonData = await (messagesLog[1].contractImpl as JettonWallet).getData();
         expect(joesJettonData.balance.toString()).eq(jettonAmount.toString());
+
+        printChain(messagesLog, "Transfer Jetton");
 
         // const ammMinterData = await (messagesLog[2].contractImpl as JettonWallet).getData();
         // expect(ammMinterData.tonReserves.toString()).toBe(tonLiquidity.toString());
