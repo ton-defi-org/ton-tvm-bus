@@ -1,19 +1,8 @@
 //@ts-ignore
-import { SmartContract, SuccessfulExecutionResult } from "ton-contract-executor";
-
-import {
-    Address,
-    Cell,
-    CellMessage,
-    InternalMessage,
-    Slice,
-    CommonMessageInfo,
-    ExternalMessage,
-    toNano,
-    TonClient,
-} from "ton";
+import { SmartContract } from "ton-contract-executor";
+import { Address, Cell, InternalMessage, TonClient } from "ton";
 import BN from "bn.js";
-import { TvmBus, iTvmBusContract, ExecutionResult } from ".";
+import { TvmBus, iTvmBusContract } from ".";
 
 export class OnChainContract implements iTvmBusContract {
     contract: SmartContract;
