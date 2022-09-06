@@ -5,7 +5,7 @@ import { printChain, TvmBus } from "../src";
 import { OnChainContract } from "../src/onChainContract";
 import { JettonMinter } from "./jetton-minter";
 import { JettonWallet } from "./jetton-wallet";
-import { cellFromString, messageGenerator } from "./utils";
+import { cellFromString, messageGenerator } from "../src/utils";
 import { Wallet } from "./wallet";
 
 const INITIAL_MINT = toNano(100);

@@ -7,7 +7,7 @@ const ZERO_ADDRESS = Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 export declare type ExecutionResult = FailedExecutionResult | SuccessfulExecutionResult;
 
 import { iTvmBusContract, TvmBus } from "../src";
-import { bytesToAddress, compileFuncToB64 } from "./utils";
+import { bytesToAddress, compileFuncToB64 } from "../src/utils";
 
 type UsdcTransferNextOp = OPS.ADD_LIQUIDITY | OPS.SWAP_TOKEN;
 

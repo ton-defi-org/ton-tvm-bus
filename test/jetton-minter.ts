@@ -16,7 +16,7 @@ import {
     beginCell,
 } from "ton";
 import BN from "bn.js";
-import { compileFuncToB64 } from "./utils";
+import { compileFuncToB64 } from "../src/utils";
 import { OPS } from "./ops";
 import { TvmBus, iTvmBusContract, ExecutionResult } from "../src";
 

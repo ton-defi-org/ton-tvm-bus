@@ -1,6 +1,15 @@
-import { Address, Cell, InternalMessage, Message, CommonMessageInfo, CellMessage } from "ton";
+import { Address, Cell, InternalMessage, Message, CommonMessageInfo, CellMessage, beginCell } from "ton";
 import { OutAction } from "ton-contract-executor";
-import { ExecutionResult, iTvmBusContract, ParsedExecutionResult, SuccessfulExecutionResult, ThinInternalMessage } from "./types";
+import { execSync } from "child_process";
+
+import {
+    ExecutionResult,
+    iTvmBusContract,
+    ParsedExecutionResult,
+    SuccessfulExecutionResult,
+    ThinInternalMessage,
+} from "./types";
+import BN from "bn.js";
 
 function filterLogs(logs: string): string[] {
     if (typeof logs == "object") {
@@ -21,7 +30,13 @@ function filterLogs(logs: string): string[] {
     return beautified;
 }
 
-export function parseResponse(inMessage: InternalMessage, response: ExecutionResult, receivingContract: iTvmBusContract, isDeployedByAction = false, caller = ""): ParsedExecutionResult {
+export function parseResponse(
+    inMessage: InternalMessage,
+    response: ExecutionResult,
+    receivingContract: iTvmBusContract,
+    isDeployedByAction = false,
+    caller = "",
+): ParsedExecutionResult {
     // @ts-ignore
 
     let successResult = response as SuccessfulExecutionResult;
@@ -61,7 +76,13 @@ function messageToString(message: Message | null) {
     return cell.toString().replace("\n", "");
 }
 
-export function actionToMessage(from: Address, action: OutAction, inMessage: InternalMessage, response: ExecutionResult, bounce = true) {
+export function actionToMessage(
+    from: Address,
+    action: OutAction,
+    inMessage: InternalMessage,
+    response: ExecutionResult,
+    bounce = true,
+) {
     //@ts-ignore
     //console.log("action1", action);
 
@@ -92,4 +113,50 @@ export function actionToMessage(from: Address, action: OutAction, inMessage: Int
         bounce,
         body: msg,
     });
+}
+
+export function compileFuncToB64(funcFiles: string[]): string {
+    const funcPath = process.env.FUNC_PATH || "func";
+    try {
+        execSync(`${funcPath} -o build/tmp.fif  -SPA ${funcFiles.join(" ")}`);
+    } catch (e: any) {
+        if (e.message.indexOf("error: `#include` is not a type identifier") > -1) {
+            console.log(`
+===============================================================================
+Please update your func compiler to support the latest func features
+to set custom path to your func compiler please set  the env variable "export FUNC_PATH=/usr/local/bin/func" 
+===============================================================================
+`);
+            process.exit(1);
+        } else {
+            console.log(e.message);
+        }
+    }
+
+    const stdOut = execSync(`fift -s build/print-hex.fif`).toString();
+    return stdOut.trim();
+}
+
+export function bytesToAddress(bufferB64: string) {
+    const buff = Buffer.from(bufferB64, "base64");
+    let c2 = Cell.fromBoc(buff);
+    return c2[0].beginParse().readAddress() as Address;
+}
+
+export function messageGenerator(opts: { to: Address; from: Address; body: Cell; value: BN; bounce?: boolean }) {
+    return new InternalMessage({
+        from: opts.from,
+        to: opts.to,
+        value: opts.value,
+        bounce: opts.bounce || false,
+        body: new CommonMessageInfo({
+            body: new CellMessage(opts.body),
+        }),
+    });
+}
+
+type encoding = "hex" | "base64";
+
+export function cellFromString(cellStr: string, stringEncoding: encoding = "hex") {
+    return beginCell().storeBuffer(Buffer.from(cellStr, stringEncoding)).endCell();
 }
