@@ -15,6 +15,20 @@ const client = new TonClient({
 });
 
 describe("Tvm Bus on chain contracts Test Suite", () => {
+    it("Should exit gracefully when contract is not deployed", async () => {
+        const tvmBus = new TvmBus({
+            client,
+        });
+
+        const contractDoesntExists = await OnChainContract.Create(
+            client,
+            Address.parse("EQDbjSy6qkF1TuOfBsYeZdjxIQt6x8qjkjKHYGCyNV83foDk"),
+            tvmBus,
+        );
+
+        console.log(contractDoesntExists);
+    });
+
     it("Fork Contact from main net, and run a swap transaction", async () => {
         const tvmBus = new TvmBus({
             client,
@@ -25,6 +39,10 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
             Address.parse("EQDjhy1Ig-S0vKCWwd3XZRKODGx0RJyhqW37ZDMl-pgv8iBr"),
             tvmBus,
         );
+        if (!myWallet) {
+            throw "wallet should be initialized";
+            return;
+        }
         // console.log(myWallet);
 
         const ammPool = Address.parse("EQBVyErgx7BCboNXOx0CwA9KYuLY4kXMHanURAGvMWeO-VCE");

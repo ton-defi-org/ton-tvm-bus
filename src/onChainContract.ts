@@ -29,7 +29,9 @@ export class OnChainContract implements iTvmBusContract {
 
     static async Create(client: TonClient, contractAddress: Address, tvmBus: TvmBus) {
         const state = await client.getContractState(contractAddress);
-
+        if (!state.code) {
+            return null;
+        }
         const code = Cell.fromBoc(state.code!)[0];
         const data = Cell.fromBoc(state.data!)[0];
         const balance = await client.getBalance(contractAddress);

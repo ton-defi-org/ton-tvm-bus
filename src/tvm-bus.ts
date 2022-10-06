@@ -23,7 +23,13 @@ export class TvmBus {
         //  contract doesn't exists in pool and forkNetwork flag is on, fetch
         //  contract dynamically
         if (!contract && this.forkNetwork) {
-            contract = await OnChainContract.Create(this.forkNetwork.client, address, this);
+            let c = await OnChainContract.Create(this.forkNetwork.client, address, this);
+            if (c) {
+                contract = c;
+            } else {
+                // TODO
+                throw "OnChainContract Create failed";
+            }
         }
         return contract;
     }
