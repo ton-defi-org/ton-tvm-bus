@@ -137,8 +137,8 @@ export function printChain(data: any, header = "-=== Print Chain ===- ") {
     const richData = enrich(data);
     const result = dataToTree(richData);
     const chains = treeToChains(result);
-
     print(chains, header);
+    return chains;
 }
 
 function print(data: any, header = "") {
