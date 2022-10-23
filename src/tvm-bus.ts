@@ -84,15 +84,13 @@ export class TvmBus {
 
         // in case receiver is not registered and the code is registered we can initialize the contract by the message
         if (!receiver) {
-            console.log(msg.body);
-
             if (msg.body.stateInit) {
                 let cell = new Cell();
                 msg.body.stateInit.writeTo(cell);
-                console.log("stateInit refs", cell.refs.length);
 
                 // let stateInit = parseStateInit(cell.beginParse());
                 // console.log({ stateInit });
+                // TODO bad
 
                 receiver = await GenericContract.Create(this, cell.refs[0] as Cell, cell.refs[1] as Cell, msg.value);
                 this.registerContract(receiver);
