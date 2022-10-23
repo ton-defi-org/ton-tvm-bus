@@ -1,6 +1,7 @@
-import { Address, Cell, contractAddress, InternalMessage, TonClient } from "ton";
+import { Address, Cell, contractAddress, InternalMessage, parseStateInit, TonClient } from "ton";
 import { SendMsgAction } from "ton-contract-executor";
 import { actionToMessage } from "../src/utils";
+import { GenericContract } from "./genericContract";
 import { OnChainContract } from "./onChainContract";
 import { ParsedExecutionResult, ExecutionResult, iTvmBusContract, iDeployableContract } from "./types";
 import { parseResponse } from "./utils";
@@ -26,16 +27,17 @@ export class TvmBus {
             let c = await OnChainContract.Create(this.forkNetwork.client, address, this);
             if (c) {
                 contract = c;
+                this.registerContract(c);
             } else {
-                // TODO
-                throw "OnChainContract Create failed";
+                // maybe message has state Init
+                return null;
             }
         }
         return contract;
     }
 
     registerCode(contract: iDeployableContract) {
-        const codeCell = contract.getCodeCell()[0];
+        const codeCell = contract.getCodeCell();
         this.codeToContractPool.set(codeCell.hash().toString("hex"), contract);
     }
 
@@ -82,10 +84,23 @@ export class TvmBus {
 
         // in case receiver is not registered and the code is registered we can initialize the contract by the message
         if (!receiver) {
-            // if fork Network flag is on, Create a contract based on RPC client
-            console.log(`receiver not found: ${msg.to.toFriendly()} msg.body:${msg.body}`);
-            //throw "no registered receiver";
-            return { taskQueue };
+            console.log(msg.body);
+
+            if (msg.body.stateInit) {
+                let cell = new Cell();
+                msg.body.stateInit.writeTo(cell);
+                console.log("stateInit refs", cell.refs.length);
+
+                // let stateInit = parseStateInit(cell.beginParse());
+                // console.log({ stateInit });
+
+                receiver = await GenericContract.Create(this, cell.refs[0] as Cell, cell.refs[1] as Cell, msg.value);
+                this.registerContract(receiver);
+            } else {
+                console.log(`receiver not found: ${msg.to.toFriendly()} msg.body:${msg.body}`);
+                //throw "no registered receiver";
+                return { taskQueue };
+            }
         }
         // process one message on each recursion
         const response = await receiver.sendInternalMessage(msg);

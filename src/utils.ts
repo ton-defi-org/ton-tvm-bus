@@ -121,7 +121,18 @@ export function bytesToAddress(bufferB64: string) {
     return c2[0].beginParse().readAddress() as Address;
 }
 
-export function messageGenerator(opts: { to: Address; from: Address; body: Cell; value: BN; bounce?: boolean }) {
+export function messageGenerator(opts: {
+    to: Address;
+    from: Address;
+    body: Cell;
+    stateInit?: Cell;
+    value: BN;
+    bounce?: boolean;
+}) {
+    let stateInit = undefined;
+    if (opts.stateInit) {
+        stateInit = new CellMessage(opts.stateInit!!);
+    }
     return new InternalMessage({
         from: opts.from,
         to: opts.to,
@@ -129,6 +140,7 @@ export function messageGenerator(opts: { to: Address; from: Address; body: Cell;
         bounce: opts.bounce || false,
         body: new CommonMessageInfo({
             body: new CellMessage(opts.body),
+            stateInit,
         }),
     });
 }

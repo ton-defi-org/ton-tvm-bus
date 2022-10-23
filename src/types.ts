@@ -40,7 +40,7 @@ export interface iTvmBusContract {
 }
 // a contract that implements this interface can automatically be registered to the message bus
 export interface iDeployableContract {
-    getCodeCell(): Cell[];
+    getCodeCell(): Cell;
     createFromMessage(code: Cell, data: Cell, initMessage: InternalMessage, tvmBus: TvmBus): Promise<iTvmBusContract>;
 }
 

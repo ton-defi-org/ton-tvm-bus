@@ -1,10 +1,10 @@
 //@ts-ignore
 import { SmartContract } from "ton-contract-executor";
-import { Address, Cell, InternalMessage, TonClient } from "ton";
+import { Address, Cell, contractAddress, InternalMessage, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
 
-export class OnChainContract implements iTvmBusContract {
+export class GenericContract implements iTvmBusContract {
     contract: SmartContract;
     public address: Address;
     public code: Cell;
@@ -27,20 +27,12 @@ export class OnChainContract implements iTvmBusContract {
         return this.code;
     }
 
-    static async Create(client: TonClient, contractAddress: Address, tvmBus: TvmBus) {
-        const state = await client.getContractState(contractAddress);
-        if (!state.code) {
-            return null;
-        }
-        const code = Cell.fromBoc(state.code!)[0];
-        const data = Cell.fromBoc(state.data!)[0];
-        const balance = await client.getBalance(contractAddress);
-
+    static async Create(tvmBus: TvmBus, code: Cell, data: Cell, balance: BN) {
         const contract = await SmartContract.fromCell(code, data, {
             getMethodsMutate: true,
         });
-
-        const instance = new OnChainContract(contract, contractAddress, balance, Cell.fromBoc(state.code!)[0]);
+        const address = contractAddress({ workchain: 0, initialCode: code, initialData: data });
+        const instance = new GenericContract(contract, address, balance, code);
         if (tvmBus) {
             tvmBus.registerContract(instance);
         }

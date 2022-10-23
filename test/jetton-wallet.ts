@@ -19,9 +19,9 @@ export class JettonWallet implements iTvmBusContract {
 
     private constructor(public readonly contract: SmartContract) {}
 
-    static getCodeCell(): Cell[] {
+    static getCodeCell(): Cell {
         const jettonWalletCodeB64: string = compileFuncToB64(["test/jetton-wallet.fc"]);
-        return Cell.fromBoc(jettonWalletCodeB64);
+        return Cell.fromBoc(jettonWalletCodeB64)[0];
     }
 
     async getData() {
