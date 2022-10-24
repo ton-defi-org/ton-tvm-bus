@@ -3,11 +3,13 @@ import { SmartContract } from "ton-contract-executor";
 import { Address, Cell, contractAddress, InternalMessage, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
+import { ExecutionResult } from "../lib/src";
 
 export class GenericContract implements iTvmBusContract {
     contract: SmartContract;
     public address: Address;
     public code: Cell;
+    public initMessageResultRaw?: ExecutionResult;
 
     private constructor(contract: SmartContract, myAddress: Address, balance: BN, code: Cell) {
         this.contract = contract;
@@ -27,7 +29,7 @@ export class GenericContract implements iTvmBusContract {
         return this.code;
     }
 
-    static async Create(tvmBus: TvmBus, code: Cell, data: Cell, balance: BN) {
+    static async Create(tvmBus: TvmBus, code: Cell, data: Cell, initMessage: InternalMessage, balance: BN) {
         const contract = await SmartContract.fromCell(code, data, {
             getMethodsMutate: true,
         });
@@ -36,6 +38,7 @@ export class GenericContract implements iTvmBusContract {
         if (tvmBus) {
             tvmBus.registerContract(instance);
         }
+        instance.initMessageResultRaw = await instance.contract.sendInternalMessage(initMessage);
         return instance;
     }
 }

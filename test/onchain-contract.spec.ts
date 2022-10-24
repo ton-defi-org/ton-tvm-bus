@@ -67,7 +67,7 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
         let messageList = await tvmBus.broadcast(msg);
         printChain(messageList, "deploy new contract with onchain enabled");
 
-        expect(tvmBus.pool.size).eq(1);
+        expect(tvmBus.pool.size).eq(2);
     });
 
     it("Should exit gracefully when contract is not deployed", async () => {

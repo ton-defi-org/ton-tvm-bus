@@ -34,7 +34,7 @@ function findNearestSender(data: any, index: number, address: Address) {
             return data[i];
         }
     }
-    throw "not found";
+    console.log(`findNearestSender : not found ${address.toFriendly()}`);
 
     return null;
 }
@@ -59,7 +59,9 @@ function dataToTree(data: any) {
         } else {
             // @ts-ignore
             if (!it.sender) {
-                //  console.log(i, it);
+                // TODO:: needs to be fixed initial sender should be part of the chain
+                console.log(`messageList::sender_not_found`);
+                return;
             }
             // @ts-ignore
             const key = `${it.sender.contractAddress.toFriendly()}-${it.sender.index}`;

@@ -24,10 +24,10 @@ export class TvmBus {
         //  contract doesn't exists in pool and forkNetwork flag is on, fetch
         //  contract dynamically
         if (!contract && this.forkNetwork) {
-            let c = await OnChainContract.Create(this.forkNetwork.client, address, this);
-            if (c) {
-                contract = c;
-                this.registerContract(c);
+            let contractFromNetwork = await OnChainContract.Create(this.forkNetwork.client, address, this);
+            if (contractFromNetwork) {
+                contract = contractFromNetwork;
+                this.registerContract(contractFromNetwork);
             } else {
                 // maybe message has state Init
                 return null;
@@ -80,20 +80,17 @@ export class TvmBus {
     private async _broadcast(msg: InternalMessage, taskQueue: Array<Function>) {
         //console.log(`broadcastCounter: ${this.counters.messagesSent} msg.body `, msg.body, `dest ${msg.to.toFriendly()}`);
 
+        // assuming 1st message in the queue , so add the first sender as the initial contract in the chain
+        // if (taskQueue.length == 0) {
+        //     await this.getContractByAddress(msg.from as Address);
+        // }
+
         let receiver = await this.getContractByAddress(msg.to);
 
-        // in case receiver is not registered and the code is registered we can initialize the contract by the message
+        // in case receiver is not registered and the code is registered we can initialize the contract by the message as a generic contract
         if (!receiver) {
             if (msg.body.stateInit) {
-                let cell = new Cell();
-                msg.body.stateInit.writeTo(cell);
-
-                // let stateInit = parseStateInit(cell.beginParse());
-                // console.log({ stateInit });
-                // TODO bad
-
-                receiver = await GenericContract.Create(this, cell.refs[0] as Cell, cell.refs[1] as Cell, msg.value);
-                this.registerContract(receiver);
+                receiver = await this.stateInitToGenericContract(taskQueue, msg);
             } else {
                 console.log(`receiver not found: ${msg.to.toFriendly()} msg.body:${msg.body}`);
                 //throw "no registered receiver";
@@ -128,39 +125,7 @@ export class TvmBus {
 
                     // In case message has StateInit, and contract address is not registered
                     if (it.message.init && !(await this.getContractByAddress(itMsg.to))) {
-                        const deployedContract = (await this.deployContractFromMessage(
-                            it.message?.init?.code as Cell,
-                            it.message?.init?.data as Cell,
-                            itMsg,
-                        )) as iTvmBusContract;
-
-                        this.counters.contractDeployed++;
-
-                        const parsedResult = parseResponse(
-                            itMsg,
-                            deployedContract.initMessageResultRaw as ExecutionResult,
-                            deployedContract,
-                            true,
-                            "loop",
-                        );
-
-                        for (let action of parsedResult.actions) {
-                            // TODO reserve currency
-                            if (action.type != "send_msg") {
-                                console.log(`unsupported action.type ${action.type}`);
-                                continue;
-                            }
-                            taskQueue.push(async () => {
-                                return await this._broadcast(
-                                    actionToMessage(deployedContract.address as Address, action, msg, response),
-                                    taskQueue,
-                                );
-                            });
-                        }
-                        return {
-                            results: this.results.push(parsedResult),
-                            taskQueue,
-                        };
+                        return this.handelMessageWithStateInit(itMsg, it, taskQueue, msg, response);
                     } else {
                         return this._broadcast(itMsg, taskQueue);
                     }
@@ -172,12 +137,83 @@ export class TvmBus {
             taskQueue,
         };
     }
+    async stateInitToGenericContract(taskQueue: Function[], msg: InternalMessage) {
+        if (!msg.body?.stateInit) {
+            throw "stateInit cant be null";
+        }
+        let cell = new Cell();
+        msg.body?.stateInit.writeTo(cell);
+        let receiver = await GenericContract.Create(this, cell.refs[0] as Cell, cell.refs[1] as Cell, msg, msg.value);
+        this.registerContract(receiver);
+        this.counters.contractDeployed++;
+
+        const response = receiver.initMessageResultRaw as ExecutionResult;
+        const parsedResult = parseResponse(msg, response, receiver, true, "new-generic-contract");
+
+        for (let action of parsedResult.actions) {
+            // TODO: handle reserve currency
+            if (action.type != "send_msg") {
+                console.log(`unsupported action.type ${action.type}`);
+                continue;
+            }
+            taskQueue.push(async () => {
+                return await this._broadcast(
+                    actionToMessage(receiver?.address as Address, action, msg, response),
+                    taskQueue,
+                );
+            });
+        }
+        this.results.push(parsedResult);
+        return receiver;
+    }
+
+    async handelMessageWithStateInit(
+        itMsg: InternalMessage,
+        it: SendMsgAction,
+        taskQueue: Function[],
+        msg: InternalMessage,
+        response: ExecutionResult,
+    ) {
+        const deployedContract = (await this.deployContractFromMessage(
+            it.message?.init?.code as Cell,
+            it.message?.init?.data as Cell,
+            itMsg,
+        )) as iTvmBusContract;
+
+        this.counters.contractDeployed++;
+
+        const parsedResult = parseResponse(
+            itMsg,
+            deployedContract.initMessageResultRaw as ExecutionResult,
+            deployedContract,
+            true,
+            "loop",
+        );
+
+        for (let action of parsedResult.actions) {
+            // TODO: reserve currency
+            if (action.type != "send_msg") {
+                console.log(`unsupported action.type ${action.type}`);
+                continue;
+            }
+            taskQueue.push(async () => {
+                return await this._broadcast(
+                    actionToMessage(deployedContract.address as Address, action, msg, response),
+                    taskQueue,
+                );
+            });
+        }
+        return {
+            results: this.results.push(parsedResult),
+            taskQueue,
+        };
+    }
 
     async deployContractFromMessage(codeCell: Cell, storage: Cell, message: InternalMessage) {
         const address = await contractAddress({ workchain: 0, initialCode: codeCell, initialData: storage });
         if (this.pool.has(address.toFriendly())) {
-            throw "deployContractFromMessage failed, already exsits";
-            return;
+            // if contract exists, already deployed
+            return this.pool.get(address.toFriendly()) as iTvmBusContract;
         }
         let impl = this.findContractByCode(codeCell);
         if (!impl) {
