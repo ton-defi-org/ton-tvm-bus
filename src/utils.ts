@@ -1,4 +1,14 @@
-import { Address, Cell, InternalMessage, Message, CommonMessageInfo, CellMessage, beginCell } from "ton";
+import {
+    Address,
+    Cell,
+    InternalMessage,
+    Message,
+    CommonMessageInfo,
+    CellMessage,
+    beginCell,
+    Slice,
+    StateInit,
+} from "ton";
 import { OutAction } from "ton-contract-executor";
 import { execSync } from "child_process";
 
@@ -71,9 +81,15 @@ function messageToString(message: Message | null) {
     if (!message) {
         return "";
     }
+    //return "xxx{xx}xxxx";
     let cell = new Cell();
-    message.writeTo(cell);
-    return cell.toString().replace("\n", "");
+    try {
+        message.writeTo(cell);
+        return cell.toString().replace("\n", "");
+    } catch (e) {
+        // TODO: fix this part
+        return "}x{";
+    }
 }
 
 export function actionToMessage(
@@ -88,11 +104,6 @@ export function actionToMessage(
 
     const sendMessageAction = action as SendMsgOutAction;
 
-    // if (action.ran) {
-    //     throw "action ran twice";
-    // }
-    // action.ran = 1;
-
     let messageValue = sendMessageAction.message?.info?.value.coins;
     if (sendMessageAction.mode == 64) {
         messageValue = inMessage.value;
@@ -102,8 +113,10 @@ export function actionToMessage(
     //  if (sendMessageAction.message?.info?.value.coins.toString() == "0") {
     // console.log(sendMessageAction, sendMessageAction.message, fromNano(sendMessageAction.message?.info?.value.coins));
     //  }
+
     let msg = new CommonMessageInfo({
         body: new CellMessage(sendMessageAction.message?.body),
+        stateInit: sendMessageAction.message?.init,
     });
 
     return new InternalMessage({
@@ -112,6 +125,18 @@ export function actionToMessage(
         value: messageValue,
         bounce,
         body: msg,
+    });
+}
+
+export function stripStatInitFromMessage(message: InternalMessage) {
+    return new InternalMessage({
+        to: message.to as Address,
+        from: message.from as Address,
+        bounce: message.bounce,
+        body: new CommonMessageInfo({
+            body: message.body.body,
+        }),
+        value: message.value,
     });
 }
 
@@ -125,14 +150,10 @@ export function messageGenerator(opts: {
     to: Address;
     from: Address;
     body: Cell;
-    stateInit?: Cell;
+    stateInit?: StateInit;
     value: BN;
     bounce?: boolean;
 }) {
-    let stateInit = undefined;
-    if (opts.stateInit) {
-        stateInit = new CellMessage(opts.stateInit!!);
-    }
     return new InternalMessage({
         from: opts.from,
         to: opts.to,
@@ -140,7 +161,7 @@ export function messageGenerator(opts: {
         bounce: opts.bounce || false,
         body: new CommonMessageInfo({
             body: new CellMessage(opts.body),
-            stateInit,
+            stateInit: opts.stateInit,
         }),
     });
 }
@@ -149,4 +170,33 @@ type encoding = "hex" | "base64";
 
 export function cellFromString(cellStr: string, stringEncoding: encoding = "hex") {
     return beginCell().storeBuffer(Buffer.from(cellStr, stringEncoding)).endCell();
+}
+
+// Source: https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/block/block.tlb#L141
+// _ split_depth:(Maybe (## 5)) special:(Maybe TickTock)
+//  code:(Maybe ^Cell) data:(Maybe ^Cell)
+//  library:(HashmapE 256 SimpleLib) = StateInit;
+export type RawStateInit2 = {
+    splitDepth: number | null;
+    code: Cell | null;
+    data: Cell | null;
+    special: null;
+    raw: Cell;
+};
+export function parseStateInit2(slice: Slice): RawStateInit2 {
+    let raw = slice.toCell();
+    let splitDepth: number | null = null;
+    if (slice.readBit()) {
+        splitDepth = slice.readUintNumber(5);
+    }
+    const special = null;
+    const hasCode = slice.readBit();
+    const code = hasCode ? slice.readCell() : null;
+    const hasData = slice.readBit();
+    const data = hasData ? slice.readCell() : null;
+    if (slice.readBit()) {
+        slice.readCell(); // Skip libraries for now
+    }
+
+    return { splitDepth, data, code, special, raw };
 }

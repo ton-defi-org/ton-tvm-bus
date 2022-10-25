@@ -17,8 +17,8 @@
     "prepare": "npm run build",
     "lint": "tslint -p tsconfig.json",
     "prepublishOnly": "npm test ",
-    "postversion": "git push && git push --tags",
-    "publish": "npm version patch --force && npm publish"
+    "postversion": "git push && git push --tags"
+    
   },
   "keywords": [
     "ton",

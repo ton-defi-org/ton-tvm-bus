@@ -7,7 +7,7 @@ const ZERO_ADDRESS = Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 export declare type ExecutionResult = FailedExecutionResult | SuccessfulExecutionResult;
 
 import { iTvmBusContract, TvmBus } from "../src";
-import { bytesToAddress } from "../src/utils";
+import { bytesToAddress, stripStatInitFromMessage } from "../src/utils";
 import { compileFuncToB64 } from "./test-utils";
 
 type UsdcTransferNextOp = OPS.ADD_LIQUIDITY | OPS.SWAP_TOKEN;
@@ -40,7 +40,8 @@ export class JettonWallet implements iTvmBusContract {
     }
     //BUS implementation
     sendInternalMessage(message: InternalMessage) {
-        return this.contract.sendInternalMessage(message);
+        let msg = stripStatInitFromMessage(message);
+        return this.contract.sendInternalMessage(msg);
     }
 
     //    transfer#f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
@@ -118,7 +119,8 @@ export class JettonWallet implements iTvmBusContract {
 
         const contract = new JettonWallet(jettonWallet);
 
-        const initRes = await jettonWallet.sendInternalMessage(initMessage);
+        let msg = stripStatInitFromMessage(initMessage);
+        const initRes = await jettonWallet.sendInternalMessage(msg);
         let successResult = initRes as SuccessfulExecutionResult;
         const initMessageResponse = {
             ...successResult,

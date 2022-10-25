@@ -3,6 +3,7 @@ import { SmartContract } from "ton-contract-executor";
 import { Address, Cell, InternalMessage, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
+import { stripStatInitFromMessage } from "./utils";
 
 export class OnChainContract implements iTvmBusContract {
     contract: SmartContract;
@@ -20,7 +21,8 @@ export class OnChainContract implements iTvmBusContract {
     }
 
     async sendInternalMessage(message: InternalMessage) {
-        return this.contract.sendInternalMessage(message);
+        let msg = stripStatInitFromMessage(message);
+        return this.contract.sendInternalMessage(msg);
     }
 
     getCodeCell() {

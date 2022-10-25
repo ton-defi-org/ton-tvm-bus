@@ -1,4 +1,4 @@
-import { Address, Cell, contractAddress, InternalMessage, parseStateInit, TonClient } from "ton";
+import { Address, Cell, contractAddress, InternalMessage, parseStateInit, RawMessage, StateInit, TonClient } from "ton";
 import { SendMsgAction } from "ton-contract-executor";
 import { actionToMessage } from "../src/utils";
 import { GenericContract } from "./genericContract";
@@ -19,7 +19,6 @@ export class TvmBus {
 
     async getContractByAddress(address: Address) {
         let contract = this.pool.get(address.toFriendly()) as iTvmBusContract;
-        // console.log(`${address.toFriendly()}`, contract);
 
         //  contract doesn't exists in pool and forkNetwork flag is on, fetch
         //  contract dynamically
@@ -77,7 +76,7 @@ export class TvmBus {
         return this.results;
     }
 
-    private async _broadcast(msg: InternalMessage, taskQueue: Array<Function>) {
+    private async _broadcast(message: InternalMessage, taskQueue: Array<Function>) {
         //console.log(`broadcastCounter: ${this.counters.messagesSent} msg.body `, msg.body, `dest ${msg.to.toFriendly()}`);
 
         // assuming 1st message in the queue , so add the first sender as the initial contract in the chain
@@ -85,22 +84,22 @@ export class TvmBus {
         //     await this.getContractByAddress(msg.from as Address);
         // }
 
-        let receiver = await this.getContractByAddress(msg.to);
+        let receiver = await this.getContractByAddress(message.to);
 
         // in case receiver is not registered and the code is registered we can initialize the contract by the message as a generic contract
         if (!receiver) {
-            if (msg.body.stateInit) {
-                receiver = await this.stateInitToGenericContract(taskQueue, msg);
+            if (message.body.stateInit) {
+                receiver = await this.initGenericContract(message, false);
             } else {
-                console.log(`receiver not found: ${msg.to.toFriendly()} msg.body:${msg.body}`);
+                console.log(`receiver not found: ${message.to.toFriendly()} msg.body:${message.body}`);
                 //throw "no registered receiver";
                 return { taskQueue };
             }
         }
         // process one message on each recursion
-        const response = await receiver.sendInternalMessage(msg);
+        const response = await receiver.sendInternalMessage(message);
 
-        this.results.push(parseResponse(msg, response, receiver, false, "broadcast"));
+        this.results.push(parseResponse(message, response, receiver, false, "broadcast"));
         //@ts-ignore
 
         if (response.actions) {
@@ -111,23 +110,23 @@ export class TvmBus {
         if (response.actionList) {
             // queue all other message action`s
 
-            for (let it of response.actionList) {
-                if (it.type != "send_msg") {
+            for (let action of response.actionList) {
+                if (action.type != "send_msg") {
                     //console.log(it.type);
                     continue;
                 }
 
-                let itMsg = actionToMessage(msg.to, it, msg, response);
+                let actionMessage = actionToMessage(message.to, action, message, response);
 
                 taskQueue.push(async () => {
-                    it = it as SendMsgAction;
+                    action = action as SendMsgAction;
                     //console.log(`task -> to:${itMsg.to.toFriendly()} body: ${itMsg.body.body}`);
 
                     // In case message has StateInit, and contract address is not registered
-                    if (it.message.init && !(await this.getContractByAddress(itMsg.to))) {
-                        return this.handelMessageWithStateInit(itMsg, it, taskQueue, msg, response);
+                    if (action.message.init && !(await this.getContractByAddress(actionMessage.to))) {
+                        return this.handelMessageWithStateInit(actionMessage, action, taskQueue, message, response);
                     } else {
-                        return this._broadcast(itMsg, taskQueue);
+                        return this._broadcast(actionMessage, taskQueue);
                     }
                 });
             }
@@ -137,38 +136,30 @@ export class TvmBus {
             taskQueue,
         };
     }
-    async stateInitToGenericContract(taskQueue: Function[], msg: InternalMessage) {
+
+    // This method creates a new tvmBusContract from the state-init
+    // processing the message (not the sate init) is prcoess by _broadcast logic
+    async initGenericContract(msg: InternalMessage, processMessageAfterInit = false) {
         if (!msg.body?.stateInit) {
             throw "stateInit cant be null";
         }
-        let cell = new Cell();
-        msg.body?.stateInit.writeTo(cell);
-        let receiver = await GenericContract.Create(this, cell.refs[0] as Cell, cell.refs[1] as Cell, msg, msg.value);
+        console.log(msg.body?.stateInit);
+
+        let receiver = await GenericContract.Create(
+            this,
+            (msg.body?.stateInit as StateInit).code!,
+            (msg.body?.stateInit as StateInit).data!,
+            msg,
+            msg.value,
+            processMessageAfterInit,
+        );
         this.registerContract(receiver);
         this.counters.contractDeployed++;
-
-        const response = receiver.initMessageResultRaw as ExecutionResult;
-        const parsedResult = parseResponse(msg, response, receiver, true, "new-generic-contract");
-
-        for (let action of parsedResult.actions) {
-            // TODO: handle reserve currency
-            if (action.type != "send_msg") {
-                console.log(`unsupported action.type ${action.type}`);
-                continue;
-            }
-            taskQueue.push(async () => {
-                return await this._broadcast(
-                    actionToMessage(receiver?.address as Address, action, msg, response),
-                    taskQueue,
-                );
-            });
-        }
-        this.results.push(parsedResult);
         return receiver;
     }
 
     async handelMessageWithStateInit(
-        itMsg: InternalMessage,
+        sourceMessage: InternalMessage,
         it: SendMsgAction,
         taskQueue: Function[],
         msg: InternalMessage,
@@ -177,13 +168,15 @@ export class TvmBus {
         const deployedContract = (await this.deployContractFromMessage(
             it.message?.init?.code as Cell,
             it.message?.init?.data as Cell,
-            itMsg,
+            it,
+            sourceMessage,
+            response,
         )) as iTvmBusContract;
 
         this.counters.contractDeployed++;
 
         const parsedResult = parseResponse(
-            itMsg,
+            sourceMessage,
             deployedContract.initMessageResultRaw as ExecutionResult,
             deployedContract,
             true,
@@ -209,18 +202,33 @@ export class TvmBus {
         };
     }
 
-    async deployContractFromMessage(codeCell: Cell, storage: Cell, message: InternalMessage) {
-        const address = await contractAddress({ workchain: 0, initialCode: codeCell, initialData: storage });
-        if (this.pool.has(address.toFriendly())) {
+    async deployContractFromMessage(
+        codeCell: Cell,
+        storage: Cell,
+        messageAction: SendMsgAction,
+        message: InternalMessage,
+        response: ExecutionResult,
+    ): Promise<iTvmBusContract> {
+        const futureAddress = await contractAddress({ workchain: 0, initialCode: codeCell, initialData: storage });
+
+        if (this.pool.has(futureAddress.toFriendly())) {
             // if contract exists, already deployed
-            return this.pool.get(address.toFriendly()) as iTvmBusContract;
+            return this.pool.get(futureAddress.toFriendly()) as iTvmBusContract;
         }
+
         let impl = this.findContractByCode(codeCell);
         if (!impl) {
-            console.table(this.codeToContractPool);
-            console.log(codeCell.hash());
+            // console.table(this.codeToContractPool);
+            console.log(codeCell.hash().toString("base64"));
 
-            throw "Please register contracts";
+            //throw `couldn't find contract ${address.toFriendly()} Please register contracts by code hash `;
+
+            // In case code hash is not registerd , use generic contract
+
+            const internalMsg = actionToMessage(message.from!, messageAction, message, response);
+            console.log(`deployContractFromMessage`, internalMsg);
+
+            return this.initGenericContract(internalMsg, true);
         }
 
         let contract = await impl.createFromMessage(codeCell, storage, message, this);

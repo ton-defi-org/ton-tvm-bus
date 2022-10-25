@@ -1,9 +1,10 @@
 //@ts-ignore
 import { SmartContract } from "ton-contract-executor";
-import { Address, Cell, contractAddress, InternalMessage, TonClient } from "ton";
+import { Address, Cell, CommonMessageInfo, contractAddress, InternalMessage, toNano, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
-import { ExecutionResult } from "../lib/src";
+import { ExecutionResult } from "./types";
+import { stripStatInitFromMessage } from "./utils";
 
 export class GenericContract implements iTvmBusContract {
     contract: SmartContract;
@@ -17,28 +18,57 @@ export class GenericContract implements iTvmBusContract {
         this.code = code;
         this.contract.setC7Config({
             myself: myAddress,
-            balance: balance,
         });
     }
 
     async sendInternalMessage(message: InternalMessage) {
-        return this.contract.sendInternalMessage(message);
+        let msg = stripStatInitFromMessage(message);
+        return this.contract.sendInternalMessage(msg);
     }
 
     getCodeCell() {
         return this.code;
     }
 
-    static async Create(tvmBus: TvmBus, code: Cell, data: Cell, initMessage: InternalMessage, balance: BN) {
+    static async Create(
+        tvmBus: TvmBus,
+        code: Cell,
+        data: Cell,
+        initMessage: InternalMessage,
+        balance: BN,
+        processMessageAfterInit: boolean,
+    ) {
+        // const deployerAddress = Address.parse("EQDjhy1Ig-S0vKCWwd3XZRKODGx0RJyhqW37ZDMl-pgv8iBr");
+        // const usdcMinter = await JettonMinter.Create(
+        //     new BN(0),
+        //     deployerAddress,
+        //     "https://ipfs.io/ipfs/dasadas",
+        //     tvmBus,
+        //     toNano("0.2"),
+        // );
+
+        //console.log("initMessage", initMessage);
+        console.log({ data });
+        // console.log({ dataFake: usdcMinter.contract?.dataCell as Cell });
+
+        console.log({ code });
+        // console.log({ codeFake: usdcMinter.contract?.codeCell as Cell });
+
         const contract = await SmartContract.fromCell(code, data, {
             getMethodsMutate: true,
         });
+
         const address = contractAddress({ workchain: 0, initialCode: code, initialData: data });
         const instance = new GenericContract(contract, address, balance, code);
-        if (tvmBus) {
-            tvmBus.registerContract(instance);
+        tvmBus.registerContract(instance);
+
+        if (processMessageAfterInit) {
+            console.log("to", initMessage.to.toFriendly());
+            console.log("from", initMessage?.from!.toFriendly());
+
+            instance.initMessageResultRaw = await instance.sendInternalMessage(initMessage);
+            console.log("Logs => initMessageResultRaw", instance.initMessageResultRaw);
         }
-        instance.initMessageResultRaw = await instance.contract.sendInternalMessage(initMessage);
         return instance;
     }
 }
