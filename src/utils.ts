@@ -8,9 +8,9 @@ import {
     beginCell,
     Slice,
     StateInit,
+    RawMessage,
 } from "ton";
 import { OutAction } from "ton-contract-executor";
-import { execSync } from "child_process";
 
 import {
     ExecutionResult,
@@ -149,19 +149,28 @@ export function bytesToAddress(bufferB64: string) {
 export function messageGenerator(opts: {
     to: Address;
     from: Address;
-    body: Cell;
+    body?: Cell;
     stateInit?: StateInit;
     value: BN;
     bounce?: boolean;
+    message?: RawMessage;
 }) {
+    let stateInit = opts.stateInit;
+    if (opts.message && opts.message.init) {
+        stateInit = new StateInit({
+            code: opts.message.init.code,
+            data: opts.message.init.data,
+        });
+    }
+
     return new InternalMessage({
         from: opts.from,
         to: opts.to,
         value: opts.value,
         bounce: opts.bounce || false,
         body: new CommonMessageInfo({
-            body: new CellMessage(opts.body),
-            stateInit: opts.stateInit,
+            body: new CellMessage(opts.body!),
+            stateInit: stateInit,
         }),
     });
 }

@@ -47,18 +47,12 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
         const tvmBus = new TvmBus({
             client,
         });
-        let stateInit = undefined;
-        if (innerMessage.init) {
-            stateInit = new StateInit({
-                code: innerMessage.init.code,
-                data: innerMessage.init.data,
-            });
-        }
+
         const msg = messageGenerator({
             to: innerInfo.dest as Address,
             from: externalMessage.info.dest as Address,
             body: innerMessage.body,
-            stateInit: stateInit,
+            message: innerMessage,
             value: toNano("0.19"),
         });
 

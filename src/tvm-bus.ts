@@ -91,7 +91,7 @@ export class TvmBus {
             if (message.body.stateInit) {
                 receiver = await this.initGenericContract(message, false);
             } else {
-                console.log(`receiver not found: ${message.to.toFriendly()} msg.body:${message.body}`);
+                console.log(`receiver not found: ${message.to.toFriendly()}`, message);
                 //throw "no registered receiver";
                 return { taskQueue };
             }
