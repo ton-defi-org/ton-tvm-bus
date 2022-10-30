@@ -144,33 +144,33 @@ export function printChain(data: any, header = "-=== Print Chain ===- ") {
 }
 
 function print(data: any, header = "") {
-    let buffer = `${header}`;
+    let stringOutput = `${header}`;
     let keyIndent = 0;
 
     for (let key in data) {
         keyIndent++;
-        buffer += `\n==[${addressEllipsis(key)}]==> \n`;
+        stringOutput += `\n==[${addressEllipsis(key)}]==> \n`;
         let arr = data[key];
 
         for (let j = 0; j < arr.length; j++) {
             if (j == 0 && arr[j].sender) {
-                buffer += `Origin: ${addressEllipsis(arr[j].sender.contractAddress.toFriendly())}-${
+                stringOutput += `Origin: ${addressEllipsis(arr[j].sender.contractAddress.toFriendly())}-${
                     arr[j].sender.index
                 }\n`;
             }
 
             const coins = fromNano(arr[j].inMessage.value);
             const indentation = indentByIndex(keyIndent);
-            buffer += `
+            stringOutput += `
 ${indentation} [${arr[j].index}]  ⬅️  From: ${arr[j].sender?.contractImpl?.constructor.name} ${addressEllipsis(
                 arr[j].from,
             )}   🛄  Message: ${messageOpToName(arr[j])} ( ${coins}💎 )    ➡️  To: ${
                 arr[j].contractImpl?.constructor.name
             } ${addressEllipsis(arr[j].contractAddress)}`.padEnd(100);
         }
-        buffer += `\n`;
+        stringOutput += `\n`;
     }
-    console.log(buffer);
+    console.log(stringOutput);
 }
 
 function indentByIndex(i: number) {

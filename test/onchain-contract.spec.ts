@@ -1,6 +1,16 @@
 import BN from "bn.js";
 import { expect } from "chai";
-import { Address, Cell, parseMessage, RawCurrencyCollection, StateInit, toNano, TonClient } from "ton";
+import {
+    Address,
+    Cell,
+    parseMessage,
+    parseMessageRelaxed,
+    RawCurrencyCollection,
+    RawMessage,
+    StateInit,
+    toNano,
+    TonClient,
+} from "ton";
 import { printChain, TvmBus } from "../src";
 import { OnChainContract } from "../src/onChainContract";
 import { cellFromString, messageGenerator } from "../src/utils";
@@ -41,7 +51,7 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
         let slice = message.beginParse();
         console.log(slice);
 
-        let innerMessage = parseMessage(slice);
+        let innerMessage = parseMessageRelaxed(slice);
         const innerInfo = innerMessage.info as RawCommonMessageInfoInternal;
 
         const tvmBus = new TvmBus({
@@ -52,7 +62,7 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
             to: innerInfo.dest as Address,
             from: externalMessage.info.dest as Address,
             body: innerMessage.body,
-            message: innerMessage,
+            message: innerMessage as RawMessage,
             value: toNano("0.19"),
         });
 
@@ -62,6 +72,45 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
         printChain(messageList, "deploy new contract with onchain enabled");
 
         expect(tvmBus.pool.size).eq(3);
+    }).timeout(10000);
+
+    it("swap ton", async () => {
+        const SWAP_TON =
+            "te6cckEBAgEAvwAB34gBxw5akQfJaXlBLYO7rsolHBjY6Ik5Q1Lb9shmS/UwX+QHWFrwTABHCdMlIIRLpZbyRs1h5v/mhUOS+cAq3kR2vT+jhNDvpZxGuQcPveMm5XyHFlZXc/f+8tiIXn13NISwOU1NGLsa8z7QAAAMgBwBAJRiAG01gF4g3YBE6C155WD4bBwzVaPiwwux6+ELuGVQS1OdIh+YKAAAAAAAAAAAAAAAAAAAAAAAGQAAAAAAAAABQ7msoAXjF4cRtdX05xc=";
+        const externalMessage = parseMessage(Cell.fromBoc(Buffer.from(SWAP_TON, "base64"))[0].beginParse());
+
+        let message = externalMessage.body.refs[0];
+        //console.log("messgage", message);
+
+        if (!message) {
+            throw 1;
+        }
+        let slice = message.beginParse();
+
+        let innerMessage = parseMessageRelaxed(slice);
+        const innerInfo = innerMessage.info as RawCommonMessageInfoInternal;
+
+        const tvmBus = new TvmBus({
+            client,
+        });
+
+        const msg = messageGenerator({
+            to: innerInfo.dest as Address,
+            from: externalMessage.info.dest as Address,
+            body: innerMessage.body,
+            message: innerMessage as RawMessage,
+            value: toNano("1.14"),
+        });
+
+        let messageList = await tvmBus.broadcast(msg);
+        console.log("messageList", messageList);
+
+        printChain(messageList, "deploy new contract with onchain enabled");
+        console.log(messageList);
+
+        //        expect(messageList[0].exit_code).eq(603);
+
+        expect(tvmBus.pool.size).eq(4);
     }).timeout(10000);
 
     it("Should exit gracefully when contract is not deployed", async () => {

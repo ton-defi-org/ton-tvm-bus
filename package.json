@@ -29,7 +29,7 @@
   "dependencies": {
     "@types/chai": "^4.3.3",
     "chai": "^4.3.6",
-    "ton": "^9.9.0",
+    "ton": "^12.1.5",
     "ton-contract-executor": "^0.5.2",
     "ts-node": "^10.9.1"
   },
