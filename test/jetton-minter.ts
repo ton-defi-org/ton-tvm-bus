@@ -19,6 +19,9 @@ import BN from "bn.js";
 import { compileFuncToB64 } from "./test-utils";
 import { OPS } from "./ops";
 import { TvmBus, iTvmBusContract, ExecutionResult } from "../src";
+import { ExecutionResultWithFees, FailedExecutionResult } from "../src/types";
+import { transfromStateInitToCell } from "../src/utils";
+import { getFeeCollector } from "../src/FeeCollector";
 
 const OFFCHAIN_CONTENT_PREFIX = 0x01;
 
@@ -139,6 +142,24 @@ export class JettonMinter implements iTvmBusContract {
             return Promise.resolve({} as ExecutionResult);
         }
         return this.contract.sendInternalMessage(message);
+    }
+
+    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+        if (!this.contract) {
+            return Promise.resolve({} as FailedExecutionResult);
+        }
+        let msg = transfromStateInitToCell(message);
+        let result = await this.contract.sendInternalMessage(msg);
+        if (result.type == "failed") {
+            return result as FailedExecutionResult;
+        }
+        let collector = await getFeeCollector();
+        const fees = await collector.processMessageFees(message, result);
+
+        return {
+            ...result,
+            ...fees,
+        };
     }
 
     async mintMessage(sender: Address, receiver: Address, jettonAmount: BN) {

@@ -31,12 +31,32 @@ export interface DeployMessageResult {
     logs: string[];
     actions: OutAction[];
 }
+
+export declare type FwdGasFee = {
+    fees: BN;
+    remaining: BN;
+};
+
+export declare type ExecutionResultWithFees = {
+    type: "success";
+    exit_code: number;
+    gas_consumed: number;
+    result: NormalizedStackEntry[];
+    actionList: OutAction[];
+    action_list_cell?: Cell;
+    logs: string;
+    computationPhase?: BN;
+    fwdFee?: BN;
+    fwdFeeRemaining?: BN;
+};
+
 // iMessageBusNative
 export interface iTvmBusContract {
     contract?: SmartContract;
     address?: Address;
     initMessageResultRaw?: ExecutionResult;
     sendInternalMessage(message: InternalMessage): Promise<ExecutionResult>;
+    sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult>;
 }
 // a contract that implements this interface can automatically be registered to the message bus
 export interface iDeployableContract {
@@ -63,6 +83,9 @@ export type ParsedExecutionResult = {
     actions: OutAction[];
     actionList: OutAction[];
     isDeployedByAction: boolean;
+    computationFee?: BN;
+    fwdFee?: BN;
+    fwdFeeRemaining?: BN;
 };
 
 export interface InternalMessageResponse {

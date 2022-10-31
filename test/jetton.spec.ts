@@ -62,7 +62,7 @@ describe("Ton Swap Bus Test Suite", () => {
 
         // const ammMinterData = await (messagesLog[2].contractImpl as JettonWallet).getData();
         // expect(ammMinterData.tonReserves.toString()).toBe(tonLiquidity.toString());
-    });
+    }).timeout(10000);
 });
 
 async function createBaseContracts(tvmBus: TvmBus) {

@@ -3,7 +3,13 @@ import { SendMsgAction } from "ton-contract-executor";
 import { actionToMessage } from "../src/utils";
 import { GenericContract } from "./genericContract";
 import { OnChainContract } from "./onChainContract";
-import { ParsedExecutionResult, ExecutionResult, iTvmBusContract, iDeployableContract } from "./types";
+import {
+    ParsedExecutionResult,
+    ExecutionResult,
+    iTvmBusContract,
+    iDeployableContract,
+    ExecutionResultWithFees,
+} from "./types";
 import { parseResponse } from "./utils";
 
 export class TvmBus {
@@ -97,7 +103,7 @@ export class TvmBus {
             }
         }
         // process one message on each recursion
-        const response = await receiver.sendInternalMessage(message);
+        const response = await receiver.sendInternalMessage2(message);
 
         this.results.push(parseResponse(message, response, receiver, false, "broadcast"));
         //@ts-ignore
@@ -177,7 +183,7 @@ export class TvmBus {
 
         const parsedResult = parseResponse(
             sourceMessage,
-            deployedContract.initMessageResultRaw as ExecutionResult,
+            deployedContract.initMessageResultRaw as ExecutionResultWithFees,
             deployedContract,
             true,
             "loop",

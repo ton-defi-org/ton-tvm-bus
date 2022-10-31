@@ -2,6 +2,9 @@ import BN from "bn.js";
 import { Address, beginCell, Cell, contractAddress, InternalMessage, toNano, WalletV1R2Source } from "ton";
 import { SmartContract } from "ton-contract-executor";
 import { TvmBus, iTvmBusContract } from "../src";
+import { getFeeCollector } from "../src/FeeCollector";
+import { ExecutionResultWithFees, FailedExecutionResult } from "../src/types";
+import { transformStateInitToCell } from "../src/utils";
 
 const walletV3Code = Cell.fromBoc(
     "B5EE9C724101010100710000DEFF0020DD2082014C97BA218201339CBAB19F71B0ED44D0D31FD31F31D70BFFE304E0A4F2608308D71820D31FD31FD31FF82313BBF263ED44D0D31FD31FD3FFD15132BAF2A15144BAF2A204F901541055F910F2A3F8009320D74A96D307D402FB00E8D101A4C8CB1FCB1FCBFFC9ED5410BD6DAD",
@@ -24,6 +27,24 @@ export class Wallet implements iTvmBusContract {
     async sendInternalMessage(message: InternalMessage) {
         //@ts-ignore
         return this.contract.sendInternalMessage(message);
+    }
+
+    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+        if (!this.contract) {
+            return Promise.resolve({} as FailedExecutionResult);
+        }
+        let msg = transformStateInitToCell(message);
+        let result = await this.contract.sendInternalMessage(msg);
+        if (result.type == "failed") {
+            return result as FailedExecutionResult;
+        }
+        let collector = await getFeeCollector();
+        const fees = await collector.processMessageFees(message, result);
+
+        return {
+            ...result,
+            ...fees,
+        };
     }
 
     static async Create(tvmBus: TvmBus, balance = toNano(10), publicKey = new BN(0), walletId = 0) {

@@ -7,8 +7,10 @@ const ZERO_ADDRESS = Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 export declare type ExecutionResult = FailedExecutionResult | SuccessfulExecutionResult;
 
 import { iTvmBusContract, TvmBus } from "../src";
-import { bytesToAddress, stripStatInitFromMessage } from "../src/utils";
+import { bytesToAddress, transfromStateInitToCell } from "../src/utils";
 import { compileFuncToB64 } from "./test-utils";
+import { getFeeCollector } from "../src/FeeCollector";
+import { ExecutionResultWithFees } from "../src/types";
 
 type UsdcTransferNextOp = OPS.ADD_LIQUIDITY | OPS.SWAP_TOKEN;
 
@@ -40,8 +42,26 @@ export class JettonWallet implements iTvmBusContract {
     }
     //BUS implementation
     sendInternalMessage(message: InternalMessage) {
-        let msg = stripStatInitFromMessage(message);
+        let msg = transfromStateInitToCell(message);
         return this.contract.sendInternalMessage(msg);
+    }
+
+    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+        if (!this.contract) {
+            return Promise.resolve({} as FailedExecutionResult);
+        }
+        let msg = transfromStateInitToCell(message);
+        let result = await this.contract.sendInternalMessage(msg);
+        if (result.type == "failed") {
+            return result as FailedExecutionResult;
+        }
+        let collector = await getFeeCollector();
+        const fees = await collector.processMessageFees(message, result);
+
+        return {
+            ...result,
+            ...fees,
+        };
     }
 
     //    transfer#f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
@@ -119,7 +139,7 @@ export class JettonWallet implements iTvmBusContract {
 
         const contract = new JettonWallet(jettonWallet);
 
-        let msg = stripStatInitFromMessage(initMessage);
+        let msg = transfromStateInitToCell(initMessage);
         const initRes = await jettonWallet.sendInternalMessage(msg);
         let successResult = initRes as SuccessfulExecutionResult;
         const initMessageResponse = {

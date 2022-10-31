@@ -3,7 +3,10 @@ import { SmartContract } from "ton-contract-executor";
 import { Address, Cell, InternalMessage, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
-import { stripStatInitFromMessage } from "./utils";
+import { transformStateInitToCell } from "./utils";
+import { getFeeCollector } from "./FeeCollector";
+import { ExecutionResultWithFees } from "./types";
+import { FailedExecutionResult } from "../lib/src/types";
 
 export class OnChainContract implements iTvmBusContract {
     contract: SmartContract;
@@ -21,8 +24,23 @@ export class OnChainContract implements iTvmBusContract {
     }
 
     async sendInternalMessage(message: InternalMessage) {
-        let msg = stripStatInitFromMessage(message);
+        let msg = transformStateInitToCell(message);
         return this.contract.sendInternalMessage(msg);
+    }
+
+    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+        let msg = transformStateInitToCell(message);
+        let result = await this.contract.sendInternalMessage(msg);
+        if (result.type == "failed") {
+            return result as FailedExecutionResult;
+        }
+        let collector = await getFeeCollector();
+        const fees = await collector.processMessageFees(message, result);
+
+        return {
+            ...result,
+            ...fees,
+        };
     }
 
     getCodeCell() {

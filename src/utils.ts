@@ -14,6 +14,8 @@ import { OutAction } from "ton-contract-executor";
 
 import {
     ExecutionResult,
+    ExecutionResultWithFees,
+    FailedExecutionResult,
     iTvmBusContract,
     ParsedExecutionResult,
     SuccessfulExecutionResult,
@@ -42,7 +44,7 @@ function filterLogs(logs: string): string[] {
 
 export function parseResponse(
     inMessage: InternalMessage,
-    response: ExecutionResult,
+    response: FailedExecutionResult | ExecutionResultWithFees,
     receivingContract: iTvmBusContract,
     isDeployedByAction = false,
     caller = "",
@@ -50,6 +52,7 @@ export function parseResponse(
     // @ts-ignore
 
     let successResult = response as SuccessfulExecutionResult;
+    let fees = response as ExecutionResultWithFees;
     return {
         time: new Date().toISOString(),
         from: inMessage.from as Address,
@@ -62,6 +65,9 @@ export function parseResponse(
         actions: successResult.actionList,
         actionList: successResult.actionList,
         isDeployedByAction,
+        computationFee: fees.computationPhase,
+        fwdFee: fees.fwdFee,
+        fwdFeeRemaining: fees.fwdFeeRemaining,
     };
 }
 
@@ -128,13 +134,23 @@ export function actionToMessage(
     });
 }
 
-export function stripStatInitFromMessage(message: InternalMessage) {
+export function transformStateInitToCell(message: InternalMessage) {
+    let stateInitCell = undefined;
+    if (message.body.stateInit) {
+        const si = message.body.stateInit as StateInit;
+        console.log(message.body);
+
+        let cell = stateInitToCell(si);
+        stateInitCell = new CellMessage(cell);
+    }
+
     return new InternalMessage({
         to: message.to as Address,
         from: message.from as Address,
         bounce: message.bounce,
         body: new CommonMessageInfo({
             body: message.body.body,
+            stateInit: stateInitCell,
         }),
         value: message.value,
     });
@@ -155,6 +171,7 @@ export function messageGenerator(opts: {
     bounce?: boolean;
     message?: RawMessage;
 }) {
+    /// TODO move back to cell Message instead of using the StateInit object
     let stateInit = opts.stateInit;
     if (opts.message && opts.message.init) {
         stateInit = new StateInit({
@@ -209,3 +226,38 @@ export function parseStateInit2(slice: Slice): RawStateInit2 {
 
     return { splitDepth, data, code, special, raw };
 }
+
+type rawStateInit = {
+    code: Cell | null;
+    data: Cell | null;
+};
+
+/// TODO
+function stateInitToCell(si: rawStateInit) {
+    let cell = new Cell();
+    cell.bits.writeBit(0); // SplitDepth
+    cell.bits.writeBit(0); // TickTock
+    cell.bits.writeBit(!!si.code); // Code presence
+    cell.bits.writeBit(!!si.data); // Data presence
+    cell.bits.writeBit(0); // Library
+    if (si.code) {
+        cell.refs.push(si.code);
+    }
+    if (si.data) {
+        cell.refs.push(si.data);
+    }
+
+    return cell;
+}
+
+// export function normalizeInternalMessage(message: InternalMessage) {
+//     const newMessage = new InternalMessage({
+//         to: message.to,
+//         from: message.from,
+//         value: message.value,
+//         body: new CommonMessageInfo({
+//             body: message.body.body,
+//             stateInit: new CellMessage(),
+//         }),
+//     });
+// }
