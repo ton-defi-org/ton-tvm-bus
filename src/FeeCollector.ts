@@ -16,7 +16,7 @@ import {
 } from "ton";
 import { OutAction, SendMsgAction } from "ton-contract-executor";
 import { StoragePrices } from "ton/dist/contracts/configs/configParsing";
-import { ExecutionResult } from "../lib/src";
+import { ExecutionResult } from "./types";
 import { actionToMessage } from "./utils";
 
 type MessagePrices = {

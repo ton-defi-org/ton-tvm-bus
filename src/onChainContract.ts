@@ -5,8 +5,7 @@ import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
 import { transformStateInitToCell } from "./utils";
 import { getFeeCollector } from "./FeeCollector";
-import { ExecutionResultWithFees } from "./types";
-import { FailedExecutionResult } from "../lib/src/types";
+import { FailedExecutionResult, ExecutionResultWithFees } from "./types";
 
 export class OnChainContract implements iTvmBusContract {
     contract: SmartContract;
