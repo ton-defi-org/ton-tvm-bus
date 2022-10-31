@@ -12,9 +12,6 @@ import {
     fromNano,
     InternalMessage,
     parseDictRefs,
-    Slice,
-    StateInit,
-    TonClient,
     TonClient4,
 } from "ton";
 import { OutAction, SendMsgAction } from "ton-contract-executor";

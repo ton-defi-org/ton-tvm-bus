@@ -7,7 +7,7 @@ const ZERO_ADDRESS = Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 export declare type ExecutionResult = FailedExecutionResult | SuccessfulExecutionResult;
 
 import { iTvmBusContract, TvmBus } from "../src";
-import { bytesToAddress, transfromStateInitToCell } from "../src/utils";
+import { bytesToAddress, transformStateInitToCell } from "../src/utils";
 import { compileFuncToB64 } from "./test-utils";
 import { getFeeCollector } from "../src/FeeCollector";
 import { ExecutionResultWithFees } from "../src/types";
@@ -42,7 +42,7 @@ export class JettonWallet implements iTvmBusContract {
     }
     //BUS implementation
     sendInternalMessage(message: InternalMessage) {
-        let msg = transfromStateInitToCell(message);
+        let msg = transformStateInitToCell(message);
         return this.contract.sendInternalMessage(msg);
     }
 
@@ -50,7 +50,7 @@ export class JettonWallet implements iTvmBusContract {
         if (!this.contract) {
             return Promise.resolve({} as FailedExecutionResult);
         }
-        let msg = transfromStateInitToCell(message);
+        let msg = transformStateInitToCell(message);
         let result = await this.contract.sendInternalMessage(msg);
         if (result.type == "failed") {
             return result as FailedExecutionResult;
@@ -139,7 +139,7 @@ export class JettonWallet implements iTvmBusContract {
 
         const contract = new JettonWallet(jettonWallet);
 
-        let msg = transfromStateInitToCell(initMessage);
+        let msg = transformStateInitToCell(initMessage);
         const initRes = await jettonWallet.sendInternalMessage(msg);
         let successResult = initRes as SuccessfulExecutionResult;
         const initMessageResponse = {

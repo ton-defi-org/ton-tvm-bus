@@ -20,7 +20,7 @@ import { compileFuncToB64 } from "./test-utils";
 import { OPS } from "./ops";
 import { TvmBus, iTvmBusContract, ExecutionResult } from "../src";
 import { ExecutionResultWithFees, FailedExecutionResult } from "../src/types";
-import { transfromStateInitToCell } from "../src/utils";
+import { transformStateInitToCell } from "../src/utils";
 import { getFeeCollector } from "../src/FeeCollector";
 
 const OFFCHAIN_CONTENT_PREFIX = 0x01;
@@ -148,7 +148,7 @@ export class JettonMinter implements iTvmBusContract {
         if (!this.contract) {
             return Promise.resolve({} as FailedExecutionResult);
         }
-        let msg = transfromStateInitToCell(message);
+        let msg = transformStateInitToCell(message);
         let result = await this.contract.sendInternalMessage(msg);
         if (result.type == "failed") {
             return result as FailedExecutionResult;
