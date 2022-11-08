@@ -40,13 +40,8 @@ export class JettonWallet implements iTvmBusContract {
             code,
         };
     }
-    //BUS implementation
-    sendInternalMessage(message: InternalMessage) {
-        let msg = transformStateInitToCell(message);
-        return this.contract.sendInternalMessage(msg);
-    }
 
-    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+    async sendInternalMessage(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
         if (!this.contract) {
             return Promise.resolve({} as FailedExecutionResult);
         }

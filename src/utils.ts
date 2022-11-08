@@ -60,7 +60,7 @@ export function parseResponse(
         contractImpl: receivingContract,
         contractAddress: receivingContract.address as Address,
         exit_code: response.exit_code,
-        // returnValue: response.result[1] as BN,
+        contractData: receivingContract.dataState,
         logs: filterLogs(response.logs),
         actions: successResult.actionList,
         actionList: successResult.actionList,

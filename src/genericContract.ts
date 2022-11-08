@@ -3,7 +3,7 @@ import { SmartContract } from "ton-contract-executor";
 import { Address, Cell, CommonMessageInfo, contractAddress, InternalMessage, toNano, TonClient } from "ton";
 import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
-import { ExecutionResult, ExecutionResultWithFees, FailedExecutionResult } from "./types";
+import { ContractData, ExecutionResult, ExecutionResultWithFees, FailedExecutionResult } from "./types";
 import { transformStateInitToCell } from "./utils";
 import { getFeeCollector } from "./FeeCollector";
 
@@ -12,6 +12,7 @@ export class GenericContract implements iTvmBusContract {
     public address: Address;
     public code: Cell;
     public initMessageResultRaw?: ExecutionResult;
+    public dataState: ContractData;
 
     private constructor(contract: SmartContract, myAddress: Address, balance: BN, code: Cell) {
         this.contract = contract;
@@ -20,21 +21,27 @@ export class GenericContract implements iTvmBusContract {
         this.contract.setC7Config({
             myself: myAddress,
         });
+        this.dataState = {
+            previousState: contract.dataCell,
+            currentState: contract.dataCell,
+            hasChanged: false,
+        };
     }
 
-    async sendInternalMessage(message: InternalMessage) {
-        let msg = transformStateInitToCell(message);
-        return this.contract.sendInternalMessage(msg);
-    }
-
-    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+    async sendInternalMessage(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
         let collector = await getFeeCollector();
         let msg = transformStateInitToCell(message);
+        const initialDataCell = this.contract.dataCell;
         let result = await this.contract.sendInternalMessage(msg);
+        const currentDataCell = this.contract.dataCell;
         if (result.type == "failed") {
             return result as FailedExecutionResult;
         }
-
+        this.dataState = {
+            previousState: initialDataCell,
+            currentState: currentDataCell,
+            hasChanged: !initialDataCell.equals(currentDataCell),
+        };
         const fees = await collector.processMessageFees(message, result);
 
         return {
@@ -55,22 +62,6 @@ export class GenericContract implements iTvmBusContract {
         balance: BN,
         processMessageAfterInit: boolean,
     ) {
-        // const deployerAddress = Address.parse("EQDjhy1Ig-S0vKCWwd3XZRKODGx0RJyhqW37ZDMl-pgv8iBr");
-        // const usdcMinter = await JettonMinter.Create(
-        //     new BN(0),
-        //     deployerAddress,
-        //     "https://ipfs.io/ipfs/dasadas",
-        //     tvmBus,
-        //     toNano("0.2"),
-        // );
-
-        //console.log("initMessage", initMessage);
-        console.log({ data });
-        // console.log({ dataFake: usdcMinter.contract?.dataCell as Cell });
-
-        console.log({ code });
-        // console.log({ codeFake: usdcMinter.contract?.codeCell as Cell });
-
         const contract = await SmartContract.fromCell(code, data, {
             getMethodsMutate: true,
         });
@@ -84,7 +75,6 @@ export class GenericContract implements iTvmBusContract {
             console.log("from", initMessage?.from!.toFriendly());
 
             instance.initMessageResultRaw = await instance.sendInternalMessage(initMessage);
-            console.log("Logs => initMessageResultRaw", instance.initMessageResultRaw);
         }
         return instance;
     }

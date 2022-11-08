@@ -1,4 +1,4 @@
-import { Address, Cell, contractAddress, InternalMessage, parseStateInit, RawMessage, StateInit, TonClient } from "ton";
+import { Address, Cell, contractAddress, ExternalMessage, InternalMessage, StateInit, TonClient } from "ton";
 import { SendMsgAction } from "ton-contract-executor";
 import { actionToMessage } from "../src/utils";
 import { GenericContract } from "./genericContract";
@@ -55,6 +55,8 @@ export class TvmBus {
         this.pool.set(address.toFriendly(), contract);
     }
 
+    //    async broadcastExternal(msg: ExternalMessage) {}
+
     async broadcast(msg: InternalMessage) {
         // empty results queue
         this.results = Array<ParsedExecutionResult>();
@@ -68,7 +70,7 @@ export class TvmBus {
             return this.results;
         }
 
-        const task = queue.pop() as Function;
+        const task = queue.pop();
 
         if (!task) {
             throw "xxx"; //TODO ... not possible
@@ -98,20 +100,18 @@ export class TvmBus {
                 receiver = await this.initGenericContract(message, false);
             } else {
                 console.log(`receiver not found: ${message.to.toFriendly()}`, message);
-                //throw "no registered receiver";
                 return { taskQueue };
             }
         }
         // process one message on each recursion
-        const response = await receiver.sendInternalMessage2(message);
+        const response = await receiver.sendInternalMessage(message);
 
         this.results.push(parseResponse(message, response, receiver, false, "broadcast"));
-        //@ts-ignore
 
-        if (response.actions) {
-            //@ts-ignore
-            response.actionList = response.actions;
-        }
+        // if (response.actions) {
+        //     //@ts-ignore
+        //     response.actionList = response.actions;
+        // }
         this.counters.messagesSent++;
         if (response.actionList) {
             // queue all other message action`s

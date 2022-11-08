@@ -54,9 +54,9 @@ export declare type ExecutionResultWithFees = {
 export interface iTvmBusContract {
     contract?: SmartContract;
     address?: Address;
+    dataState?: ContractData;
     initMessageResultRaw?: ExecutionResult;
-    sendInternalMessage(message: InternalMessage): Promise<ExecutionResult>;
-    sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult>;
+    sendInternalMessage(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult>;
 }
 // a contract that implements this interface can automatically be registered to the message bus
 export interface iDeployableContract {
@@ -71,6 +71,11 @@ export type ThinInternalMessage = {
     mode: Number;
 };
 
+export type ContractData = {
+    previousState: Cell;
+    currentState: Cell;
+    hasChanged: boolean;
+};
 export type ParsedExecutionResult = {
     time: string;
     from: Address;
@@ -79,11 +84,13 @@ export type ParsedExecutionResult = {
     contractAddress: Address;
     exit_code: number;
     returnValue?: BN;
+    contractData?: ContractData;
     logs: string[];
     actions: OutAction[];
     actionList: OutAction[];
     isDeployedByAction: boolean;
     computationFee?: BN;
+    importFee?: BN;
     fwdFee?: BN;
     fwdFeeRemaining?: BN;
 };

@@ -5,12 +5,13 @@ import BN from "bn.js";
 import { TvmBus, iTvmBusContract } from ".";
 import { transformStateInitToCell } from "./utils";
 import { getFeeCollector } from "./FeeCollector";
-import { FailedExecutionResult, ExecutionResultWithFees } from "./types";
+import { FailedExecutionResult, ExecutionResultWithFees, ContractData } from "./types";
 
 export class OnChainContract implements iTvmBusContract {
     contract: SmartContract;
     public address: Address;
     public code: Cell;
+    public dataState: ContractData;
 
     private constructor(contract: SmartContract, myAddress: Address, balance: BN, code: Cell) {
         this.contract = contract;
@@ -20,19 +21,27 @@ export class OnChainContract implements iTvmBusContract {
             myself: myAddress,
             balance: balance,
         });
+
+        this.dataState = {
+            previousState: contract.dataCell,
+            currentState: contract.dataCell,
+            hasChanged: false,
+        };
     }
 
-    async sendInternalMessage(message: InternalMessage) {
+    async sendInternalMessage(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
         let msg = transformStateInitToCell(message);
-        return this.contract.sendInternalMessage(msg);
-    }
-
-    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
-        let msg = transformStateInitToCell(message);
+        const initialDataCell = this.contract.dataCell;
         let result = await this.contract.sendInternalMessage(msg);
+        const currentDataCell = this.contract.dataCell;
         if (result.type == "failed") {
             return result as FailedExecutionResult;
         }
+        this.dataState = {
+            previousState: initialDataCell,
+            currentState: currentDataCell,
+            hasChanged: !initialDataCell.equals(currentDataCell),
+        };
         let collector = await getFeeCollector();
         const fees = await collector.processMessageFees(message, result);
 

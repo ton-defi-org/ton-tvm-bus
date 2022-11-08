@@ -24,12 +24,7 @@ export class Wallet implements iTvmBusContract {
         });
     }
 
-    async sendInternalMessage(message: InternalMessage) {
-        //@ts-ignore
-        return this.contract.sendInternalMessage(message);
-    }
-
-    async sendInternalMessage2(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
+    async sendInternalMessage(message: InternalMessage): Promise<ExecutionResultWithFees | FailedExecutionResult> {
         if (!this.contract) {
             return Promise.resolve({} as FailedExecutionResult);
         }
