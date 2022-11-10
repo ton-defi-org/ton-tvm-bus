@@ -113,44 +113,44 @@ describe("Tvm Bus on chain contracts Test Suite", () => {
         expect(parseFloat(fromNano(firstMessage.fwdFee as BN))).to.gt(0.001);
     });
 
-    it("swap ton", async () => {
-        const SWAP_TON =
-            "te6cckEBAgEAvwAB34gBxw5akQfJaXlBLYO7rsolHBjY6Ik5Q1Lb9shmS/UwX+QHWFrwTABHCdMlIIRLpZbyRs1h5v/mhUOS+cAq3kR2vT+jhNDvpZxGuQcPveMm5XyHFlZXc/f+8tiIXn13NISwOU1NGLsa8z7QAAAMgBwBAJRiAG01gF4g3YBE6C155WD4bBwzVaPiwwux6+ELuGVQS1OdIh+YKAAAAAAAAAAAAAAAAAAAAAAAGQAAAAAAAAABQ7msoAXjF4cRtdX05xc=";
-        const externalMessage = parseMessage(Cell.fromBoc(Buffer.from(SWAP_TON, "base64"))[0].beginParse());
+    // it("swap ton", async () => {
+    //     const SWAP_TON =
+    //         "te6cckEBAgEAvwAB34gBxw5akQfJaXlBLYO7rsolHBjY6Ik5Q1Lb9shmS/UwX+QHWFrwTABHCdMlIIRLpZbyRs1h5v/mhUOS+cAq3kR2vT+jhNDvpZxGuQcPveMm5XyHFlZXc/f+8tiIXn13NISwOU1NGLsa8z7QAAAMgBwBAJRiAG01gF4g3YBE6C155WD4bBwzVaPiwwux6+ELuGVQS1OdIh+YKAAAAAAAAAAAAAAAAAAAAAAAGQAAAAAAAAABQ7msoAXjF4cRtdX05xc=";
+    //     const externalMessage = parseMessage(Cell.fromBoc(Buffer.from(SWAP_TON, "base64"))[0].beginParse());
 
-        let message = externalMessage.body.refs[0];
-        //console.log("messgage", message);
+    //     let message = externalMessage.body.refs[0];
+    //     //console.log("messgage", message);
 
-        if (!message) {
-            throw 1;
-        }
-        let slice = message.beginParse();
+    //     if (!message) {
+    //         throw 1;
+    //     }
+    //     let slice = message.beginParse();
 
-        let innerMessage = parseMessageRelaxed(slice);
-        const innerInfo = innerMessage.info as RawCommonMessageInfoInternal;
+    //     let innerMessage = parseMessageRelaxed(slice);
+    //     const innerInfo = innerMessage.info as RawCommonMessageInfoInternal;
 
-        const tvmBus = new TvmBus({
-            client,
-        });
+    //     const tvmBus = new TvmBus({
+    //         client,
+    //     });
 
-        const msg = messageGenerator({
-            to: innerInfo.dest as Address,
-            from: externalMessage.info.dest as Address,
-            body: innerMessage.body,
-            message: innerMessage as RawMessage,
-            value: toNano("1.14"),
-        });
+    //     const msg = messageGenerator({
+    //         to: innerInfo.dest as Address,
+    //         from: externalMessage.info.dest as Address,
+    //         body: innerMessage.body,
+    //         message: innerMessage as RawMessage,
+    //         value: toNano("1.14"),
+    //     });
 
-        let messageList = await tvmBus.broadcast(msg);
-        console.log("messageList", messageList);
+    //     let messageList = await tvmBus.broadcast(msg);
+    //     console.log("messageList", messageList);
 
-        printChain(messageList, "deploy new contract with onchain enabled");
-        console.log(messageList);
+    //     printChain(messageList, "deploy new contract with onchain enabled");
+    //     console.log(messageList);
 
-        //        expect(messageList[0].exit_code).eq(603);
+    //     //        expect(messageList[0].exit_code).eq(603);
 
-        expect(tvmBus.pool.size).eq(4);
-    });
+    //     expect(tvmBus.pool.size).eq(4);
+    // });
 
     it("Should exit gracefully when contract is not deployed", async () => {
         const tvmBus = new TvmBus({
